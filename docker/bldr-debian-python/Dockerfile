@@ -30,10 +30,13 @@ RUN apt-get update && apt-get -q -y install \
   libtool \
   pkg-config
 
-RUN wget -nv https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-linux.zip \
-    && unzip ninja-linux.zip \
+RUN git clone https://github.com/ninja-build/ninja.git \
+    && cd ninja \
+    && git checkout v1.9.0 \
+    && ./configure.py --bootstrap \
     && chmod +x ninja \
-    && mv ninja /usr/local/bin
+    && mv ninja /usr/local/bin \
+    && cd .. && rm -rf ninja
 
 # NNG repo is not frequently tagged so it's pinned to a commit hash.
 # This commit provides fix to the proxy-reconnect

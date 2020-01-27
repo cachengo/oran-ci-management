@@ -16,7 +16,7 @@
 
 # Builder image with superset of CI tools for RIC components
 
-FROM nexus3.o-ran-sc.org:10001/ubuntu:16.04
+FROM ubuntu:16.04
 
 RUN apt-get update && apt-get install -y \
     autoconf \
@@ -44,12 +44,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /tmp
 
-RUN wget -nv https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5-Linux-x86_64.sh \
-    && chmod +x cmake-3.14.5-Linux-x86_64.sh \
-    && ./cmake-3.14.5-Linux-x86_64.sh --prefix=/usr/local --skip-license
+RUN git clone https://github.com/Kitware/CMake.git \
+    && cd CMake && git checkout v3.14.5 \
+    && ./bootstrap && make && make install \
+    && cd .. && rm -rf CMake
 
-RUN wget -nv https://dl.google.com/go/go1.12.linux-amd64.tar.gz \
-    && tar -xf go1.12.linux-amd64.tar.gz \
+RUN if test "$(uname -m)" = "aarch64" ; then ARCH="arm64"; else ARCH="amd64"; fi \
+    && wget -nv https://dl.google.com/go/go1.12.linux-$ARCH.tar.gz \
+    && tar -xf go1.12.linux-$ARCH.tar.gz \
     && mv go /usr/local
 ENV PATH=$PATH:/usr/local/go/bin:/usr/lib/go-1.12/bin
 RUN go get -u github.com/ory/go-acc \
@@ -59,10 +61,13 @@ RUN wget -nv https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/son
     && unzip sonar-scanner-cli-3.2.0.1227-linux.zip \
     && mv sonar-scanner-3.2.0.1227-linux /usr/local/
 
-RUN wget -nv https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-linux.zip \
-    && unzip ninja-linux.zip \
+RUN git clone https://github.com/ninja-build/ninja.git \
+    && cd ninja \
+    && git checkout v1.9.0 \
+    && ./configure.py --bootstrap \
     && chmod +x ninja \
-    && mv ninja /usr/local/bin
+    && mv ninja /usr/local/bin \
+    && cd .. && rm -rf ninja
 
 # NNG repo is not frequently tagged so it's pinned to a commit hash.
 # This commit provides fix to the proxy-reconnect
